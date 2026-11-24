@@ -240,3 +240,19 @@ def test_render_report_writes_contrasts(tmp_path):
     render_report(tmp_path, n_boot=100)
     c = pd.read_csv(tmp_path / "contrasts.csv")
     assert set(c.hypothesis) == {"H2", "H3"}  # no oof.parquet, so no H4 rows
+
+
+def test_confusion_rows_normalised():
+    from sleepaudit.report import build_confusion
+
+    oof = pd.DataFrame(
+        {"model": "m", "arm": "subject", "seed": 0, "y_true": [0, 0, 0, 0, 1, 1],
+         "y_pred": [0, 0, 0, 2, 1, 0]}
+    )  # fmt: skip
+    c = build_confusion(oof)
+    assert list(c.columns) == ["model", "arm", "true", "pred", "n", "share"]
+    assert len(c) == 5 * 5  # every cell, all five stages, including empty rows
+    w = c[c["true"] == "W"].set_index("pred")["share"]
+    assert w["W"] == pytest.approx(0.75) and w["N2"] == pytest.approx(0.25)
+    assert c[c["true"] == "N1"].set_index("pred")["share"]["W"] == pytest.approx(0.5)
+    assert c[c["true"] == "N3"]["share"].isna().all()  # no true N3 epochs: undefined, not 0

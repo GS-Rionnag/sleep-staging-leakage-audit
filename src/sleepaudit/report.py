@@ -120,6 +120,29 @@ def build_contrasts(
     return pd.DataFrame(rows, columns=CONTRAST_COLUMNS)
 
 
+STAGES = ["W", "N1", "N2", "N3", "REM"]
+
+
+def build_confusion(oof: pd.DataFrame) -> pd.DataFrame:
+    """Row-normalised confusion matrix per model and arm, epochs pooled over subjects and seeds.
+
+    ``share`` is the fraction of true-``true`` epochs predicted as ``pred``; NaN for a stage with
+    no true epochs.
+    """
+    rows = []
+    for (model, arm), g in oof.groupby(["model", "arm"], observed=True):
+        counts = pd.crosstab(g["y_true"], g["y_pred"]).reindex(
+            index=range(5), columns=range(5), fill_value=0
+        )
+        totals = counts.sum(axis=1)
+        for t in range(5):
+            for p in range(5):
+                n = int(counts.loc[t, p])
+                share = n / totals[t] if totals[t] else float("nan")
+                rows.append((model, arm, STAGES[t], STAGES[p], n, share))
+    return pd.DataFrame(rows, columns=["model", "arm", "true", "pred", "n", "share"])
+
+
 def _mean_ci(values: np.ndarray, n_boot: int = 2000, seed: int = 0) -> tuple[float, float, float]:
     values = values[~np.isnan(values)]
     rng = np.random.default_rng(seed)
@@ -191,6 +214,8 @@ def render_report(results_dir: Path, n_boot: int = 10000) -> None:
         else None
     )  # fmt: skip
     build_contrasts(per_subject, oof, n_boot).to_csv(results_dir / "contrasts.csv", index=False)
+    if oof is not None:
+        build_confusion(oof).to_csv(results_dir / "confusion.csv", index=False)
     figures = results_dir / "figures"
     figures.mkdir(exist_ok=True)
     arms = set(per_subject["arm"])
