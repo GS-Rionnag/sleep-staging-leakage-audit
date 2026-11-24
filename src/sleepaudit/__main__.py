@@ -33,8 +33,22 @@ def _build_manifest(cfg: Config | None) -> None:
     print(f"wrote manifest with {len(df)} files")
 
 
+def _fetch_labels(cfg: Config | None) -> None:
+    from sleepaudit.download import fetch_labels
+
+    fetch_labels(cfg)
+
+
+def _fetch_psg(cfg: Config | None) -> None:
+    from sleepaudit.download import fetch_psg
+
+    fetch_psg(cfg)
+
+
 HANDLERS: dict[str, Callable[[Config | None], None]] = {c: _stub(c) for c in COMMANDS}
 HANDLERS["build-manifest"] = _build_manifest
+HANDLERS["fetch-labels"] = _fetch_labels
+HANDLERS["fetch-psg"] = _fetch_psg
 NO_CONFIG = {"build-manifest"}  # works on the manifest only; --config is optional
 
 

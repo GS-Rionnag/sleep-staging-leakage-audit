@@ -145,15 +145,15 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
   - `edf_duration_seconds(header: bytes) -> float`: `int(header[236:244]) * float(header[244:252])`.
   - CLI `fetch-labels`: all hypnograms + PSG headers for the config subset into `data_dir()/sleep-cassette/`. `fetch-psg`: full PSG files.
 
-- [ ] **Step 1: Write failing tests** (all use a fake `Getter`, no network):
+- [x] **Step 1: Write failing tests** (all use a fake `Getter`, no network):
   - `test_checksum_mismatch_leaves_no_file`: fake returns `b"bad"`; `ChecksumError` raised; neither `<name>` nor `<name>.part` exists.
   - `test_fallback_used_on_primary_error`: fake raises `HTTPError` for physionet.org URLs and returns good bytes for the S3 URL; file written, both URLs were called in that order.
   - `test_existing_good_file_skipped`: second call makes zero getter calls.
   - `test_edf_duration`: synthetic 256-byte header with `"84      "` at 236:244 and `"30      "` at 244:252 → `2520.0`.
-- [ ] **Step 2:** Run `uv run pytest tests/test_download.py -v`. Expected: FAIL.
-- [ ] **Step 3:** Implement `download.py`.
-- [ ] **Step 4:** Run tests (PASS), then `uv run python -m sleepaudit fetch-labels --config configs/sc78.yaml` and confirm 153 hypnograms + 153 headers (~1 MB) land in the data dir.
-- [ ] **Step 5:** Commit: `feat: checksummed downloader with S3 fallback`.
+- [x] **Step 2:** Run `uv run pytest tests/test_download.py -v`. Expected: FAIL.
+- [x] **Step 3:** Implement `download.py`.
+- [x] **Step 4:** Run tests (PASS), then `uv run python -m sleepaudit fetch-labels --config configs/sc78.yaml` and confirm 153 hypnograms + 153 headers (~1 MB) land in the data dir.
+- [x] **Step 5:** Commit: `feat: checksummed downloader with S3 fallback`.
 
 ---
 
