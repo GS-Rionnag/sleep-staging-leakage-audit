@@ -12,6 +12,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+from sleepaudit.yasa_model import PrecomputedClassifier, lgbm_factory
+
 
 @dataclass(frozen=True)
 class ModelSpec:
@@ -49,4 +51,10 @@ MODELS: dict[str, ModelSpec] = {
     ),
     "bandpower_lr": ModelSpec("bandpower_lr", by_prefix("bp_"), _logreg, True),
     "bandpower_ctx_lr": ModelSpec("bandpower_ctx_lr", by_prefix("bp_", "bpctx_"), _logreg, True),
+    "yasa_lgbm": ModelSpec(
+        "yasa_lgbm", by_prefix("yasa_", exclude=("yasa_proba_",)), lgbm_factory, False
+    ),
+    "yasa_pretrained": ModelSpec(
+        "yasa_pretrained", by_prefix("yasa_proba_"), lambda seed: PrecomputedClassifier(), False
+    ),
 }

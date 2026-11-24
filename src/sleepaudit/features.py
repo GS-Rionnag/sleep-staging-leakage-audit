@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import time
 from pathlib import Path
 
 import numpy as np
@@ -73,6 +74,19 @@ def load_signal_epochs(rec: Recording, root: Path, epoch_nos: np.ndarray) -> np.
     return data[idx].astype(np.float32)
 
 
+def uses_yasa(cfg: Config) -> bool:
+    return any(m.startswith("yasa_") for m in cfg.models)
+
+
+def _extractor_versions(cfg: Config) -> list[str]:
+    """Optional extractors that run for this config, with versions (part of the cache key)."""
+    if not uses_yasa(cfg):
+        return []
+    from sleepaudit.yasa_model import yasa_version
+
+    return [f"yasa=={yasa_version()}"]
+
+
 def feature_params(cfg: Config) -> dict:
     """Every parameter that changes feature values; part of the cache key."""
     return {
@@ -81,7 +95,7 @@ def feature_params(cfg: Config) -> dict:
         "channel": CHANNEL,
         "sfreq": SFREQ,
         "context_width": CONTEXT_WIDTH,
-        "extractors": [],
+        "extractors": _extractor_versions(cfg),
     }
 
 
@@ -106,7 +120,12 @@ def _recording_features(rec: Recording, root: Path, cfg: Config) -> pd.DataFrame
     bp_cols = [f"bp_{name}" for name in BANDS]
     table[bp_cols] = band_power(epochs)
     ctx = context_features(table, bp_cols)
-    return pd.concat([table, ctx], axis=1)
+    parts = [table, ctx]
+    if uses_yasa(cfg):
+        from sleepaudit.yasa_model import yasa_features
+
+        parts.append(yasa_features(rec, root, table["epoch_no"].to_numpy()))
+    return pd.concat(parts, axis=1)
 
 
 def build_feature_table(cfg: Config) -> pd.DataFrame:
@@ -123,7 +142,11 @@ def build_feature_table(cfg: Config) -> pd.DataFrame:
         if path.exists():
             part = pd.read_parquet(path)
         else:
+            start = time.perf_counter()
             part = _recording_features(rec, root, cfg)
+            print(
+                f"{rec.stem}: features in {time.perf_counter() - start:.1f} s ({len(part)} epochs)"
+            )
             tmp = path.with_suffix(".parquet.part")
             part.to_parquet(tmp, index=False)
             os.replace(tmp, path)

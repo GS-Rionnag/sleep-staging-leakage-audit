@@ -301,14 +301,15 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
   - `PrecomputedClassifier(BaseEstimator, ClassifierMixin)`: `fit` is a no-op that sets `classes_ = [0..4]`; `predict_proba(X)` returns `X` (the five `yasa_proba_*` columns); `predict` returns argmax.
   - `MODELS["yasa_lgbm"]` (`yasa_*` minus `yasa_proba_*` → `LGBMClassifier` with the Global Constraints settings and `random_state=seed`, `has_scaler=False`); `MODELS["yasa_pretrained"]` (`yasa_proba_*` → `PrecomputedClassifier`, `has_scaler=False`).
 
-- [ ] **Step 1: Write failing tests:**
+- [x] **Step 1: Write failing tests:**
   - `test_yasa_code_map`: every YASA stage string maps into `0..4`.
   - `test_precomputed_ignores_training`: fitting on any data then predicting a fixed probability matrix gives the argmax of that matrix.
   - `test_pretrained_split_invariant`: on a synthetic table with `yasa_proba_*` columns, per-subject κ from `run_oof` is identical (exact equality) for every arm in `ARMS`.
   - `@needs_psg test_yasa_rows_align`: for `SC4001E`, `yasa_features` returns one row per kept epoch with no NaN in `yasa_proba_*`.
-- [ ] **Step 2:** Run `uv run pytest tests/test_yasa_model.py -v`. Expected: FAIL.
-- [ ] **Step 3:** Implement; verify the exact feature-column names and `Hypnogram.proba` column labels against the installed YASA 0.8.1 before writing the mapping.
-- [ ] **Step 4:** Run tests with `SLEEPAUDIT_REQUIRE_DATA=1`. Expected: PASS. Also run `uv run python -m sleepaudit features --config configs/ci.yaml` and record the per-night extraction time in the PR description.
+- [x] **Step 2:** Run `uv run pytest tests/test_yasa_model.py -v`. Expected: FAIL.
+- [x] **Step 3:** Implement; verify the exact feature-column names and `Hypnogram.proba` column labels against the installed YASA 0.8.1 before writing the mapping.
+  - *Note (executed 2026-11-24): verified on yasa 0.8.1: `get_features()` → DataFrame, 116 columns (`eeg_*`, `eog_*` incl. `*_c7min_norm`/`*_p2min_norm` smoothing columns, `time_hour`, `time_norm`), index `epoch`; `predict().proba` columns are `WAKE, N1, N2, N3, REM` (not `W`), mapped via `YASA_TO_CODE`. `models.py` imports `PrecomputedClassifier`/`lgbm_factory` from `yasa_model`, so `yasa_model` must not import `models` (circular). `build_feature_table` runs YASA only when `cfg.models` has a `yasa_*` model, and the yasa version is part of the cache key. YASA's pickled classifier emits an sklearn `InconsistentVersionWarning` (trained on 0.24.2); the control still reaches ~0.85 accuracy on SC4001E/SC4002E, so it works.*
+- [x] **Step 4:** Run tests with `SLEEPAUDIT_REQUIRE_DATA=1`. Expected: PASS. Also run `uv run python -m sleepaudit features --config configs/ci.yaml` and record the per-night extraction time in the PR description.
 - [ ] **Step 5:** Commit: `feat: YASA features, LightGBM model and pretrained control`.
 
 ---
