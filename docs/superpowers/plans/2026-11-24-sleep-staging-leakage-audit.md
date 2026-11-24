@@ -271,7 +271,7 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
   - `pooled_metrics(oof) -> dict[str, float]` (accuracy, κ, macro-F1, per-class F1 `f1_W..f1_REM`).
   - `expected_calibration_error(y_true, proba, n_bins=15) -> float` (max-probability, equal-width bins).
 
-- [ ] **Step 1: Write failing tests:**
+- [x] **Step 1: Write failing tests:**
   - `test_spy_scaler_fit_rows` (`test_evaluate.py`): a spy transformer recording fitted row indices; under arm `subject` it never sees a test row; under `subject_prefit` it was fitted once on all rows.
   - `test_prefit_rejected_without_scaler`: `run_oof(MODELS["majority"], ..., prefit_scaler=True)` raises `ValueError`.
   - `test_oof_covers_all_rows`: `len(oof) == len(table)` and `oof.row` is unique.
@@ -279,9 +279,9 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
   - `test_kappa_nan_when_degenerate`: a subject with all-W truth and all-W predictions → κ is NaN, accuracy 1.0.
   - `test_ece_perfect_is_zero`: one-hot correct probabilities → ECE 0.
   - `test_bandpower_lr_learns` (`test_models.py`): on synthetic separable features, subject-wise accuracy > 0.9.
-- [ ] **Step 2:** Run `uv run pytest tests/test_models.py tests/test_evaluate.py -v`. Expected: FAIL.
-- [ ] **Step 3:** Implement `models.py` and `evaluate.py`.
-- [ ] **Step 4:** Run tests. Expected: PASS.
+- [x] **Step 2:** Run `uv run pytest tests/test_models.py tests/test_evaluate.py -v`. Expected: FAIL.
+- [x] **Step 3:** Implement `models.py` and `evaluate.py`.
+- [x] **Step 4:** Run tests. Expected: PASS.
 - [ ] **Step 5:** Commit: `feat: model registry, out-of-fold evaluation and per-subject metrics`.
 
 ---
