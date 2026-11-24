@@ -282,7 +282,7 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
 - [x] **Step 2:** Run `uv run pytest tests/test_models.py tests/test_evaluate.py -v`. Expected: FAIL.
 - [x] **Step 3:** Implement `models.py` and `evaluate.py`.
 - [x] **Step 4:** Run tests. Expected: PASS.
-- [ ] **Step 5:** Commit: `feat: model registry, out-of-fold evaluation and per-subject metrics`.
+- [x] **Step 5:** Commit: `feat: model registry, out-of-fold evaluation and per-subject metrics`.
 
 ---
 
@@ -310,7 +310,7 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
 - [x] **Step 3:** Implement; verify the exact feature-column names and `Hypnogram.proba` column labels against the installed YASA 0.8.1 before writing the mapping.
   - *Note (executed 2026-11-24): verified on yasa 0.8.1: `get_features()` → DataFrame, 116 columns (`eeg_*`, `eog_*` incl. `*_c7min_norm`/`*_p2min_norm` smoothing columns, `time_hour`, `time_norm`), index `epoch`; `predict().proba` columns are `WAKE, N1, N2, N3, REM` (not `W`), mapped via `YASA_TO_CODE`. `models.py` imports `PrecomputedClassifier`/`lgbm_factory` from `yasa_model`, so `yasa_model` must not import `models` (circular). `build_feature_table` runs YASA only when `cfg.models` has a `yasa_*` model, and the yasa version is part of the cache key. YASA's pickled classifier emits an sklearn `InconsistentVersionWarning` (trained on 0.24.2); the control still reaches ~0.85 accuracy on SC4001E/SC4002E, so it works.*
 - [x] **Step 4:** Run tests with `SLEEPAUDIT_REQUIRE_DATA=1`. Expected: PASS. Also run `uv run python -m sleepaudit features --config configs/ci.yaml` and record the per-night extraction time in the PR description.
-- [ ] **Step 5:** Commit: `feat: YASA features, LightGBM model and pretrained control`.
+- [x] **Step 5:** Commit: `feat: YASA features, LightGBM model and pretrained control`.
 
 ---
 
@@ -329,7 +329,7 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
   - `STRATA = {"0-1": (0, 1), "2-3": (2, 3), "4": (4, 4), "stable": (5, inf)}` and `stratum(dist: np.ndarray) -> np.ndarray[str]`.
   - `night_summary(table: pd.DataFrame) -> pd.DataFrame` per recording: `transition_share`, `n1_share`, `n_awakenings` (W runs after first sleep and before last sleep), `waso_min`, `age` (from MNE's `mne/datasets/sleep_physionet/age_records.csv`).
 
-- [ ] **Step 1: Write failing tests:**
+- [x] **Step 1: Write failing tests:**
   - `test_bootstrap_known_shift`: 30 subjects, honest = leaky − 0.1 exactly → `mean_diff == -0.1`, `lo == hi == -0.1` (atol 1e-12), `frac_honest_lower == 1.0`.
   - `test_bootstrap_drops_nan_pairwise`: one subject NaN in leaky only → `n_dropped == 1`, `n_subjects` reduced by one.
   - `test_bootstrap_seed_averaging`: two seeds per subject with values 0.5 and 0.7 → the subject enters as 0.6.
@@ -337,10 +337,10 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
   - `test_transition_distance`: `[0,0,0,2,2,2,2,2]` → `[3,2,1,0,1,2,3,4]` (the epoch where the change lands counts as distance 0; its predecessor 1).
   - `test_strata_bins`: distances `[0,1,2,3,4,5,9]` → `["0-1","0-1","2-3","2-3","4","stable","stable"]`.
   - `test_awakenings_count`: synthetic night with two W runs inside sleep → 2.
-- [ ] **Step 2:** Run `uv run pytest tests/test_stats.py tests/test_fragmentation.py -v`. Expected: FAIL.
-- [ ] **Step 3:** Implement both modules.
-- [ ] **Step 4:** Run tests. Expected: PASS.
-- [ ] **Step 5:** Commit: `feat: paired subject bootstrap and fragmentation strata`.
+- [x] **Step 2:** Run `uv run pytest tests/test_stats.py tests/test_fragmentation.py -v`. Expected: FAIL.
+- [x] **Step 3:** Implement both modules.
+- [x] **Step 4:** Run tests. Expected: PASS.
+- [x] **Step 5:** Commit: `feat: paired subject bootstrap and fragmentation strata`.
 
 ---
 
