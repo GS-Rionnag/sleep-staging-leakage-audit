@@ -171,7 +171,7 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
   - `trim(labels: np.ndarray, edge: int = 60, name: str = "") -> np.ndarray`: returns the **original-grid indices** of kept epochs: drop `-1` first, then on the remaining sequence keep `[first_nonW - edge, last_nonW + edge]` inclusive, clipped. Raises `ValueError(f"{name}: no sleep epochs")` if no non-W epoch.
   - `recording_labels(rec: Recording, root: Path, edge: int = 60) -> pd.DataFrame` with columns `recording, subject, night, epoch_no, label` (reads the hypnogram via `mne.read_annotations`, duration from the `.header` file or the full PSG).
 
-- [ ] **Step 1: Write failing tests:**
+- [x] **Step 1: Write failing tests:**
   - `test_epoch_labels_merges_n4_and_clips`: annotations W 0–60 s, "4" 60–120 s, "?" 120–600 s with `psg_seconds=150` → `[0,0,3,3,-1]`.
   - `test_epoch_labels_nonzero_onset`: first annotation at 60 s → first two epochs are `-1`.
   - `test_trim_drops_unknown_before_trimming`: a label array where a `-1` run sits inside the 60-epoch wake margin; the kept indices skip it and still include 60 valid W epochs before the first non-W.
@@ -179,10 +179,10 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
   - `@needs_labels test_sc20_counts`: concatenated labels for `sc20` → per-class counts N1 2,804; N2 17,799; N3 5,703; REM 7,717 exactly, W within 1 of 8,285; total within 1 of 42,308.
   - `@needs_labels test_sc78_counts`: N1 21,522; N2 69,132; N3 13,039; REM 25,835 exactly; W within 10 of 65,951; total within 10 of 195,479.
   - `@needs_labels test_tutorial_recordings`: `SC4001E` → 841 epochs, `SC4011E` → 1,103.
-- [ ] **Step 2:** Run `uv run pytest tests/test_labels.py -v`. Expected: FAIL.
-- [ ] **Step 3:** Implement `labels.py`.
-- [ ] **Step 4:** Run with data present and `SLEEPAUDIT_REQUIRE_DATA=1`. Expected: PASS. If a count test is off by more than its tolerance, stop and investigate the trimming order before going on; every later number depends on it.
-- [ ] **Step 5:** Commit: `feat: label parsing, clipping and ±30 min wake trimming`.
+- [x] **Step 2:** Run `uv run pytest tests/test_labels.py -v`. Expected: FAIL.
+- [x] **Step 3:** Implement `labels.py`.
+- [x] **Step 4:** Run with data present and `SLEEPAUDIT_REQUIRE_DATA=1`. Expected: PASS. If a count test is off by more than its tolerance, stop and investigate the trimming order before going on; every later number depends on it.
+- [x] **Step 5:** Commit: `feat: label parsing, clipping and ±30 min wake trimming`.
 
 ---
 
