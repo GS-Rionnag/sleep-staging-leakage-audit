@@ -1,0 +1,41 @@
+[project]
+name = "sleepaudit"
+version = "0.1.0"
+description = "Sleep-staging leakage audit on Sleep-EDF (Sleep Cassette)"
+authors = [
+    { name = "GS", email = "75359453+GS-Rionnag@users.noreply.github.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "matplotlib>=3.11.2",
+    "mne>=1.13,<1.14",
+    "numpy>=2.4.6",
+    "pandas>=3.1.1",
+    "pyarrow>=26.0.1",
+    "pyyaml>=6.0.4",
+    "requests>=2.34.2",
+    "scikit-learn>=1.6",
+    "scipy>=1.17.1",
+    "yasa[full]>=0.8.1,<0.9",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.9,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.17.6",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "needs_labels: needs the downloaded hypnograms and PSG headers",
+    "needs_psg: needs the downloaded PSG files",
+]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]

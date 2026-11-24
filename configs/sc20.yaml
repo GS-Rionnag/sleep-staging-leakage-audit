@@ -1,0 +1,7 @@
+name: sc20
+subset: sc20
+k: 20
+seeds: [0, 1, 2, 3, 4]
+arms: [epoch, block, night, subject, subject_prefit]
+models: [majority, bandpower_lr, bandpower_ctx_lr, yasa_lgbm, yasa_pretrained]
+results_dir: results/sc20

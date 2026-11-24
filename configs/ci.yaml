@@ -1,0 +1,8 @@
+name: ci
+subset: [0, 1, 2, 3]
+k: 2
+seeds: [0]
+n_boot: 1000
+arms: [epoch, block, night, subject, subject_prefit]
+models: [majority, bandpower_lr, bandpower_ctx_lr, yasa_lgbm, yasa_pretrained]
+results_dir: results/ci
