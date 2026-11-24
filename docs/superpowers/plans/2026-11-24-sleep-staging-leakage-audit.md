@@ -237,7 +237,7 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
     - `subject` and `subject_prefit`: `GroupKFold(..., shuffle=True)` with `groups=subject` (identical folds; the arms differ only in preprocessing, see Task 7).
     - Raises `ValueError` if `k` exceeds the number of groups for the arm.
 
-- [ ] **Step 1: Write failing tests** on a synthetic index (subjects 0–5 with two nights each plus subject 13 with one night, 200 epochs per night):
+- [x] **Step 1: Write failing tests** on a synthetic index (subjects 0–5 with two nights each plus subject 13 with one night, 200 epochs per night):
   - `test_subject_arm_no_overlap`: for every fold, `set(subject[train]) & set(subject[test]) == set()`.
   - `test_night_arm_shares_subjects_not_recordings`: recordings disjoint, at least one fold shares a subject.
   - `test_epoch_arm_leaks`: at least one fold shares a subject.
@@ -247,10 +247,11 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
   - `test_one_night_subject_ok`: subject 13 appears in exactly one fold's test set for `night` and `subject`.
   - `test_k_too_large_raises`: `k=20` on the 7-subject index with `arm="subject"` raises `ValueError`.
   - `test_folds_not_contiguous_ids`: with 20 subjects and k=4, at least one test fold's subject IDs are not a contiguous range.
-- [ ] **Step 2:** Run `uv run pytest tests/test_splits.py -v`. Expected: FAIL.
-- [ ] **Step 3:** Implement `splits.py`.
-- [ ] **Step 4:** Run tests. Expected: PASS.
-- [ ] **Step 5:** Commit: `feat: leaky, blocked, night-wise and subject-wise splits`.
+- [x] **Step 2:** Run `uv run pytest tests/test_splits.py -v`. Expected: FAIL.
+- [x] **Step 3:** Implement `splits.py`.
+- [x] **Step 4:** Run tests. Expected: PASS.
+  - *Note (executed 2026-11-24): "within `buffer_epochs`" implemented as distance `<= buffer_epochs` (8 epochs = 4 min dropped each side; the spec requires the buffer to exceed YASA's 7.5-epoch window). Beyond the plan's list the file also tests: every arm raises for k > groups, subject_prefit folds identical to subject, block tests whole blocks, buffer=0 keeps all, unsorted row order, input not mutated, `ARMS == VALID_ARMS`. Mutation-checked: grouping subject by recording, off-by-one buffer, no buffer, no shuffle and block key without recording each fail at least one test.*
+- [x] **Step 5:** Commit: `feat: leaky, blocked, night-wise and subject-wise splits`.
 
 ---
 
