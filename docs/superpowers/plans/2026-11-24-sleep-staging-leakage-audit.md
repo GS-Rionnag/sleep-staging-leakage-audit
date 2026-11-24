@@ -86,6 +86,7 @@ Shared data shape used across tasks — **the epoch table** (`pandas.DataFrame`,
 Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_boot: 1000`, all five arms, all five models. `sc20.yaml` → `subset: sc20`, `k: 20`. `sc78.yaml` → `subset: sc78`, `k: 10`. Both full configs: seeds `[0,1,2,3,4]`, arms `[epoch, block, night, subject, subject_prefit]`, models `[majority, bandpower_lr, bandpower_ctx_lr, yasa_lgbm, yasa_pretrained]`.
 
 - [x] **Step 1:** `git init`, create the files above, `uv init --package --name sleepaudit` adjusted to the `src/` layout, then `uv add` the Tech Stack packages with the Global Constraints bounds and `uv add --dev pytest ruff`. Commit `uv.lock`.
+  - *Note (executed 2026-11-24): `uv init` defaults to `requires-python >=3.12`; set to `>=3.11` per Global Constraints. uv was missing and was installed with `winget install astral-sh.uv` (uv 0.13.9).*
 - [x] **Step 2: Write failing tests** in `tests/test_config.py`:
   - `test_load_ci_config`: `load_config(Path("configs/ci.yaml"))` has `subset == [0,1,2,3]`, `k == 2`, `"subject" in arms`.
   - `test_full_configs_pin_k`: `sc78.yaml` → `k == 10`; `sc20.yaml` → `k == 20`; both `seeds == [0,1,2,3,4]`.
@@ -93,6 +94,7 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
   - `test_data_dir_env`: with `SLEEPAUDIT_DATA` set to `tmp_path / "dir with space"`, `data_dir()` returns that path and it exists.
 - [x] **Step 3:** Run `uv run pytest tests/test_config.py -v`. Expected: FAIL (`ImportError`).
 - [x] **Step 4:** Implement `config.py` and the CLI dispatcher (argparse).
+  - *Note (executed 2026-11-24): `--config` is optional for `build-manifest` only (Task 2 runs it without a config). `VALID_ARMS`/`VALID_MODELS` live in `config.py`; `splits.ARMS` (Task 6) must equal `VALID_ARMS`.*
 - [x] **Step 5:** Run `uv run pytest -v && uv run ruff check . && uv run python -m sleepaudit --help`. Expected: tests pass, ruff clean, help lists all seven commands.
 - [x] **Step 6:** Commit: `chore: repo skeleton, config loader and CLI`.
 
@@ -124,6 +126,7 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
   - `test_build_manifest_filters_st`: a fake `SHA256SUMS` text with one `sleep-cassette/` and one `sleep-telemetry/` line yields one row.
 - [x] **Step 2:** Run `uv run pytest tests/test_records.py -v`. Expected: FAIL.
 - [x] **Step 3:** Implement `records.py`; run `uv run python -m sleepaudit build-manifest` once and commit the generated `data/manifests/sc_files.csv`.
+  - *Note (executed 2026-11-24): `build_manifest` gained an optional `sizes` argument; the CLI fills `size` from HEAD requests (306 files, none missing). Manifest holds 153 PSG + 153 hypnogram rows.*
 - [x] **Step 4:** Run tests. Expected: PASS.
 - [x] **Step 5:** Commit: `feat: record parsing, subsets and SC manifest`.
 
@@ -182,6 +185,7 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
 - [x] **Step 2:** Run `uv run pytest tests/test_labels.py -v`. Expected: FAIL.
 - [x] **Step 3:** Implement `labels.py`.
 - [x] **Step 4:** Run with data present and `SLEEPAUDIT_REQUIRE_DATA=1`. Expected: PASS. If a count test is off by more than its tolerance, stop and investigate the trimming order before going on; every later number depends on it.
+  - *Note (executed 2026-11-24): All counts matched exactly, including W and totals, on the first run; no trimming-order investigation was needed.*
 - [x] **Step 5:** Commit: `feat: label parsing, clipping and ±30 min wake trimming`.
 
 ---
