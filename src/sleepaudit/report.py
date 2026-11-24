@@ -42,6 +42,84 @@ def build_summary(per_subject: pd.DataFrame, n_boot: int, metric: str = "kappa")
     return pd.DataFrame(rows, columns=SUMMARY_COLUMNS)
 
 
+TRAINED_MODELS = ("bandpower_lr", "bandpower_ctx_lr", "yasa_lgbm")
+H2_STEPS = (("block", "epoch"), ("night", "block"), ("subject", "night"))
+H3_REFERENCE = "bandpower_lr"
+CONTRAST_COLUMNS = [
+    "hypothesis", "model", "contrast", "metric", "mean_diff", "lo", "hi",
+    "frac_negative", "wilcoxon_p", "n_subjects", "n_dropped",
+]  # fmt: skip
+
+
+def _subject_means(df: pd.DataFrame, metric: str) -> pd.Series:
+    return df.groupby("subject")[metric].mean()
+
+
+def _contrast_row(hyp, model, contrast, metric, a: pd.Series, b: pd.Series, n_boot) -> dict:
+    """Paired subject bootstrap of ``a - b`` (both indexed by subject)."""
+    res = paired_bootstrap(
+        a.rename(metric).reset_index(), b.rename(metric).reset_index(), metric=metric, n_boot=n_boot
+    )
+    out = {"hypothesis": hyp, "model": model, "contrast": contrast, "metric": metric}
+    out |= {k: v for k, v in res.__dict__.items() if k != "frac_honest_lower"}
+    return out | {"frac_negative": res.frac_honest_lower}
+
+
+def build_contrasts(
+    per_subject: pd.DataFrame, oof: pd.DataFrame | None, n_boot: int, metric: str = "kappa"
+) -> pd.DataFrame:
+    """Pre-registered contrasts for H2-H4, each a paired subject bootstrap (seeds averaged first).
+
+    H2: adjacent arms ``block - epoch``, ``night - block``, ``subject - night`` per trained model.
+    H3: per-subject gap ``subject - epoch`` of a context/smoothed model minus that of
+        ``bandpower_lr`` (negative = larger inflation than band power alone).
+    H4: per-subject accuracy gain ``epoch - subject`` in the ``stable`` stratum minus the gain in
+        the ``0-1`` stratum (positive = the leaky gain concentrates in stable epochs). Needs ``oof``.
+    """
+    rows = []
+    models = [m for m in TRAINED_MODELS if m in set(per_subject["model"])]
+    arm_means = {
+        (m, a): _subject_means(g, metric)
+        for (m, a), g in per_subject[per_subject["model"].isin(models)].groupby(["model", "arm"])
+    }
+    for m in models:
+        for honest, leaky in H2_STEPS:
+            if (m, honest) in arm_means and (m, leaky) in arm_means:
+                rows.append(_contrast_row("H2", m, f"{honest} - {leaky}", metric,
+                                          arm_means[m, honest], arm_means[m, leaky], n_boot))  # fmt: skip
+
+    def gap(m):
+        return arm_means[m, HONEST] - arm_means[m, "epoch"]
+
+    has_gap = {m for m in models if (m, HONEST) in arm_means and (m, "epoch") in arm_means}
+    if H3_REFERENCE in has_gap:
+        for m in sorted(has_gap - {H3_REFERENCE}, key=TRAINED_MODELS.index):
+            rows.append(_contrast_row("H3", m, f"gap({HONEST} - epoch) minus {H3_REFERENCE}'s",
+                                      metric, gap(m), gap(H3_REFERENCE), n_boot))  # fmt: skip
+
+    if oof is not None:
+        sel = oof[
+            oof["model"].isin(models)
+            & oof["arm"].isin(["epoch", HONEST])
+            & oof["stratum"].isin(["stable", "0-1"])
+        ]
+        acc = (
+            sel.assign(correct=(sel["y_true"] == sel["y_pred"]).astype(float))
+            .groupby(["model", "arm", "stratum", "seed", "subject"], observed=True)["correct"]
+            .mean()
+            .groupby(["model", "arm", "stratum", "subject"], observed=True)
+            .mean()
+        )
+        for m in models:
+            try:
+                gain = {s: acc[m, "epoch", s] - acc[m, HONEST, s] for s in ("stable", "0-1")}
+            except KeyError:
+                continue
+            rows.append(_contrast_row("H4", m, "gain(epoch - subject) in stable minus in 0-1",
+                                      "accuracy", gain["stable"], gain["0-1"], n_boot))  # fmt: skip
+    return pd.DataFrame(rows, columns=CONTRAST_COLUMNS)
+
+
 def _mean_ci(values: np.ndarray, n_boot: int = 2000, seed: int = 0) -> tuple[float, float, float]:
     values = values[~np.isnan(values)]
     rng = np.random.default_rng(seed)
@@ -106,6 +184,13 @@ def render_report(results_dir: Path, n_boot: int = 10000) -> None:
     per_subject = pd.read_csv(results_dir / "per_subject.csv")
     summary = build_summary(per_subject, n_boot)
     summary.to_csv(results_dir / "summary.csv", index=False)
+    oof_path = results_dir / "oof.parquet"
+    oof = (
+        pd.read_parquet(oof_path, columns=["model", "arm", "seed", "subject", "stratum", "y_true", "y_pred"])
+        if oof_path.exists()
+        else None
+    )  # fmt: skip
+    build_contrasts(per_subject, oof, n_boot).to_csv(results_dir / "contrasts.csv", index=False)
     figures = results_dir / "figures"
     figures.mkdir(exist_ok=True)
     arms = set(per_subject["arm"])

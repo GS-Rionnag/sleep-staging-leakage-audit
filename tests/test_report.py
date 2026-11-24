@@ -158,3 +158,85 @@ def test_run_evaluation_writes_results(tmp_path, monkeypatch):
     assert (
         len(pd.read_csv(res / "summary.csv")) == 4 + 3
     )  # bandpower_lr: 4 comparisons; majority has no subject_prefit
+
+
+CONTRAST_COLS = [
+    "hypothesis", "model", "contrast", "metric", "mean_diff", "lo", "hi",
+    "frac_negative", "wilcoxon_p", "n_subjects", "n_dropped",
+]  # fmt: skip
+ARM_KAPPA = {
+    "bandpower_lr": {"epoch": 0.80, "block": 0.76, "night": 0.72, "subject": 0.70},
+    "bandpower_ctx_lr": {"epoch": 0.85, "block": 0.80, "night": 0.70, "subject": 0.65},
+}
+
+
+def _ps_arms(arm_kappa=ARM_KAPPA, n_subjects=10):
+    rows = [
+        ("syn", m, arm, seed, s, k, 0.8, 0.7, 0.1, 100)
+        for m, arms in arm_kappa.items()
+        for arm, k in arms.items()
+        for seed in (0, 1)
+        for s in range(n_subjects)
+    ]
+    cols = ["dataset", "model", "arm", "seed", "subject", "kappa", "accuracy", "macro_f1", "ece",
+            "n_epochs"]  # fmt: skip
+    return pd.DataFrame(rows, columns=cols)
+
+
+def _row(c, hyp, model, contrast):
+    sel = c[(c.hypothesis == hyp) & (c.model == model) & (c.contrast == contrast)]
+    assert len(sel) == 1, (hyp, model, contrast, c[["hypothesis", "model", "contrast"]])
+    return sel.iloc[0]
+
+
+def test_contrasts_h2_adjacent_arms():
+    from sleepaudit.report import build_contrasts
+
+    c = build_contrasts(_ps_arms(), oof=None, n_boot=200)
+    assert list(c.columns) == CONTRAST_COLS
+    for model, k in ARM_KAPPA.items():
+        for honest, leaky in (("block", "epoch"), ("night", "block"), ("subject", "night")):
+            r = _row(c, "H2", model, f"{honest} - {leaky}")
+            assert r.mean_diff == pytest.approx(k[honest] - k[leaky])
+            assert r.lo == pytest.approx(r.mean_diff) and r.hi == pytest.approx(r.mean_diff)
+
+
+def test_contrasts_h3_gap_versus_bandpower_lr():
+    from sleepaudit.report import build_contrasts
+
+    c = build_contrasts(_ps_arms(), oof=None, n_boot=200)
+    r = _row(c, "H3", "bandpower_ctx_lr", "gap(subject - epoch) minus bandpower_lr's")
+    assert r.mean_diff == pytest.approx((0.65 - 0.85) - (0.70 - 0.80))  # -0.1: larger gap
+    assert r.frac_negative == 1.0
+    assert set(c[c.hypothesis == "H3"].model) == {"bandpower_ctx_lr"}  # yasa_lgbm absent here
+
+
+def _oof_strata(n_subjects=8, n=40):
+    """epoch arm right on every stable epoch, subject arm right on half; both right on 0-1."""
+    rows = []
+    for arm in ("epoch", "subject"):
+        for seed in (0, 1):
+            for s in range(n_subjects):
+                for i in range(n):
+                    stratum = "stable" if i % 2 else "0-1"
+                    right = stratum == "0-1" or arm == "epoch" or i % 4 == 1
+                    rows.append(("bandpower_lr", arm, seed, s, stratum, 2, 2 if right else 1))
+    return pd.DataFrame(rows, columns=["model", "arm", "seed", "subject", "stratum", "y_true",
+                                       "y_pred"])  # fmt: skip
+
+
+def test_contrasts_h4_stable_versus_transition_gain():
+    from sleepaudit.report import build_contrasts
+
+    c = build_contrasts(_ps_arms(), oof=_oof_strata(), n_boot=200)
+    r = _row(c, "H4", "bandpower_lr", "gain(epoch - subject) in stable minus in 0-1")
+    assert r.metric == "accuracy"
+    assert r.mean_diff == pytest.approx(0.5)  # stable gain 0.5, 0-1 gain 0
+    assert r.lo == pytest.approx(0.5)
+
+
+def test_render_report_writes_contrasts(tmp_path):
+    _ps_arms().to_csv(tmp_path / "per_subject.csv", index=False)
+    render_report(tmp_path, n_boot=100)
+    c = pd.read_csv(tmp_path / "contrasts.csv")
+    assert set(c.hypothesis) == {"H2", "H3"}  # no oof.parquet, so no H4 rows
