@@ -1,0 +1,72 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1" # weekly: keeps the data caches from the 7-day eviction
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: true
+      - run: uv sync --locked
+      - run: uv run ruff check .
+      - run: uv run pytest -m "not needs_labels and not needs_psg"
+
+  labels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: true
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/sleepaudit_data
+          key: labels-${{ hashFiles('data/manifests/sc_files.csv') }}
+      - run: uv sync --locked
+      - run: uv run python -m sleepaudit fetch-labels --config configs/sc78.yaml
+      - run: uv run pytest -m needs_labels
+        env:
+          SLEEPAUDIT_REQUIRE_DATA: "1"
+
+  smoke:
+    needs: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          enable-cache: true
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/sleepaudit_data
+          key: fixture-${{ hashFiles('data/manifests/sc_files.csv', 'configs/ci.yaml') }}
+      - run: uv sync --locked
+      - run: uv run python -m sleepaudit all --config configs/ci.yaml
+      - run: uv run pytest -m needs_psg
+        env:
+          SLEEPAUDIT_REQUIRE_DATA: "1"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ci-results
+          # CSVs, PNGs and meta.json only: no parquet, no EDF
+          path: |
+            results/ci/*.csv
+            results/ci/*.json
+            results/ci/figures/*.png
+          retention-days: 14

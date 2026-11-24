@@ -393,9 +393,10 @@ Jobs:
 - `smoke` (ubuntu, `timeout-minutes: 30`, needs `unit`): cache keyed `fixture-${{ hashFiles('data/manifests/sc_files.csv', 'configs/ci.yaml') }}`; `uv run python -m sleepaudit all --config configs/ci.yaml`; `SLEEPAUDIT_REQUIRE_DATA=1 uv run pytest -m needs_psg`; upload `results/ci/` (CSVs, PNGs, `meta.json` only) with `retention-days: 14`.
 - Triggers: `push`, `pull_request`, `workflow_dispatch`, and `schedule: cron "0 6 * * 1"` (weekly, keeps the cache from 7-day eviction).
 
-- [ ] **Step 1:** Write the workflow.
-- [ ] **Step 2:** Validate locally with `uvx actionlint` (or `uvx check-jsonschema --builtin-schema vendor.github-workflows .github/workflows/ci.yml`). Expected: no errors.
-- [ ] **Step 3:** Commit: `ci: unit, label-count and fixture smoke jobs`.
+- [x] **Step 1:** Write the workflow.
+- [x] **Step 2:** Validate locally with `uvx actionlint` (or `uvx check-jsonschema --builtin-schema vendor.github-workflows .github/workflows/ci.yml`). Expected: no errors.
+  - *Note (executed 2026-11-24): `uvx actionlint` does not exist on PyPI; validated with `uvx check-jsonschema --builtin-schema vendor.github-workflows` (ok). All actions are pinned to commit SHAs; the `unit`/`labels`/`smoke` jobs use `contents: read` only. The artifact upload globs are CSV, JSON and PNG only.*
+- [x] **Step 3:** Commit: `ci: unit, label-count and fixture smoke jobs`.
 - [ ] **Step 4:** Ask the user before creating the GitHub repository and pushing (outward-facing). After the push, confirm all three jobs pass; the first `smoke` run downloads ~400 MB.
 
 ---
