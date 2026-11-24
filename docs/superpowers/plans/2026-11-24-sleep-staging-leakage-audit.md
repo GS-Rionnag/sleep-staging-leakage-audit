@@ -114,7 +114,7 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
   - `select_recordings(subset: str | list[int], manifest: pd.DataFrame | None = None) -> list[Recording]`.
   - `build_manifest(sha256sums_text: str, records_text: str) -> pd.DataFrame` (CLI fetches `SHA256SUMS.txt` and `RECORDS` from PhysioNet, falling back to the S3 mirror, keeps only `sleep-cassette/` entries, writes the CSV). `size` may be filled from HTTP `Content-Length` via a HEAD request.
 
-- [ ] **Step 1: Write failing tests:**
+- [x] **Step 1: Write failing tests:**
   - `test_parse_name`: `parse_name("SC4001E0-PSG.edf") == (0, 1)`; `parse_name("SC4022EJ-Hypnogram.edf") == (2, 2)`; `parse_name("ST7011J0-PSG.edf")` raises `ValueError`.
   - `test_pair_scorer_codes_differ`: `pair_files(["SC4021E0-PSG.edf","SC4021EH-Hypnogram.edf","SC4022E0-PSG.edf","SC4022EJ-Hypnogram.edf"])` yields stems `["SC4021E","SC4022E"]`.
   - `test_pair_missing_hypnogram_raises`.
@@ -122,10 +122,10 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
   - `test_sc78_shape`: 153 recordings, 78 subjects, missing IDs `{39,68,69,78,79}`, subjects 36 and 52 have nights `{2}`, exactly 75 subjects have two nights.
   - `test_explicit_subset`: `select_recordings([0,1,2,3])` → 8 recordings.
   - `test_build_manifest_filters_st`: a fake `SHA256SUMS` text with one `sleep-cassette/` and one `sleep-telemetry/` line yields one row.
-- [ ] **Step 2:** Run `uv run pytest tests/test_records.py -v`. Expected: FAIL.
-- [ ] **Step 3:** Implement `records.py`; run `uv run python -m sleepaudit build-manifest` once and commit the generated `data/manifests/sc_files.csv`.
-- [ ] **Step 4:** Run tests. Expected: PASS.
-- [ ] **Step 5:** Commit: `feat: record parsing, subsets and SC manifest`.
+- [x] **Step 2:** Run `uv run pytest tests/test_records.py -v`. Expected: FAIL.
+- [x] **Step 3:** Implement `records.py`; run `uv run python -m sleepaudit build-manifest` once and commit the generated `data/manifests/sc_files.csv`.
+- [x] **Step 4:** Run tests. Expected: PASS.
+- [x] **Step 5:** Commit: `feat: record parsing, subsets and SC manifest`.
 
 ---
 

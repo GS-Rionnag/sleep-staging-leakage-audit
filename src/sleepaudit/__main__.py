@@ -26,7 +26,15 @@ def _stub(name: str) -> Callable[[Config | None], None]:
     return run
 
 
+def _build_manifest(cfg: Config | None) -> None:
+    from sleepaudit.records import write_manifest
+
+    df = write_manifest()
+    print(f"wrote manifest with {len(df)} files")
+
+
 HANDLERS: dict[str, Callable[[Config | None], None]] = {c: _stub(c) for c in COMMANDS}
+HANDLERS["build-manifest"] = _build_manifest
 NO_CONFIG = {"build-manifest"}  # works on the manifest only; --config is optional
 
 
