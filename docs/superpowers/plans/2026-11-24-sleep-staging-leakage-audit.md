@@ -207,15 +207,15 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
   - `cache_key(rec: Recording, sha256: str, params: dict) -> str` (hash of PSG checksum + feature parameters + package version).
   - `build_feature_table(cfg: Config) -> pd.DataFrame`: the epoch table with `bp_*` and `bpctx_*` columns (plus `yasa_*` once Task 8 registers its extractor); per-recording parquet cached at `data_dir()/cache/<cache_key>.parquet`; the combined table written to `cfg.results_dir / "features.parquet"`.
 
-- [ ] **Step 1: Write failing tests:**
+- [x] **Step 1: Write failing tests:**
   - `test_band_power_alpha_sine`: 10 Hz sine epochs → argmax column is alpha; rows sum to 1 (atol 1e-6).
   - `test_context_does_not_cross_recordings`: two recordings of 3 epochs each; the `-1` offset of recording B's first epoch equals B's own first epoch, not A's last.
   - `test_cache_key_changes_with_params`: changing `trim_epochs` or `BANDS` changes the key.
   - `@needs_psg test_feature_table_rows_match_labels`: for subject 0, `build_feature_table` row count equals the `recording_labels` row count and `epoch_no` values match.
-- [ ] **Step 2:** Run `uv run pytest tests/test_features.py -v`. Expected: FAIL.
-- [ ] **Step 3:** Implement `features.py`.
-- [ ] **Step 4:** `uv run python -m sleepaudit fetch-psg --config configs/ci.yaml && uv run pytest tests/test_features.py -v` with `SLEEPAUDIT_REQUIRE_DATA=1`. Expected: PASS.
-- [ ] **Step 5:** Commit: `feat: band-power and context features with cache`.
+- [x] **Step 2:** Run `uv run pytest tests/test_features.py -v`. Expected: FAIL.
+- [x] **Step 3:** Implement `features.py`.
+- [x] **Step 4:** `uv run python -m sleepaudit fetch-psg --config configs/ci.yaml && uv run pytest tests/test_features.py -v` with `SLEEPAUDIT_REQUIRE_DATA=1`. Expected: PASS.
+- [x] **Step 5:** Commit: `feat: band-power and context features with cache`.
 
 ---
 

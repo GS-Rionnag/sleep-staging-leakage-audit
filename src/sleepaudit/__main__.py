@@ -45,10 +45,18 @@ def _fetch_psg(cfg: Config | None) -> None:
     fetch_psg(cfg)
 
 
+def _features(cfg: Config | None) -> None:
+    from sleepaudit.features import build_feature_table
+
+    table = build_feature_table(cfg)
+    print(f"wrote {len(table)} epochs to {cfg.results_dir / 'features.parquet'}")
+
+
 HANDLERS: dict[str, Callable[[Config | None], None]] = {c: _stub(c) for c in COMMANDS}
 HANDLERS["build-manifest"] = _build_manifest
 HANDLERS["fetch-labels"] = _fetch_labels
 HANDLERS["fetch-psg"] = _fetch_psg
+HANDLERS["features"] = _features
 NO_CONFIG = {"build-manifest"}  # works on the manifest only; --config is optional
 
 
