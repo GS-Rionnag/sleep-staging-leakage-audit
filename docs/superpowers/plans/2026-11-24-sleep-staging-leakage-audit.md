@@ -423,7 +423,8 @@ Content pinned by the spec (section "Subjects are the unit of evidence"):
 - [x] **Step 2:** Self-check: every hypothesis names an arm and model that exist in `ARMS`/`MODELS`; every failure criterion maps to an existing test.
   - *Note (executed 2026-11-24): checked by script; every cited `test_*` function exists, and each failure criterion also has a run-time check (`meta.json` → `pipeline_checks`).*
 - [x] **Step 3:** Commit: `docs: pre-registration, model info sheet, REFORMS and data card`.
-- [ ] **Step 4:** `git tag -a prereg-v1 -m "Pre-registration frozen before any full-data run"`. Push the tag only with the user's go-ahead.
+- [x] **Step 4:** `git tag -a prereg-v1 -m "Pre-registration frozen before any full-data run"`. Push the tag only with the user's go-ahead.
+  - *Note (executed 2026-11-24): tag on 9764041; pushed with `main` to the private `server` remote on the user's instruction (`git push server main --follow-tags`; the bare form pushed nothing because `main` has no upstream). Not pushed to GitHub.*
 
 ---
 
