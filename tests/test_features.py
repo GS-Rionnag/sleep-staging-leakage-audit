@@ -51,6 +51,21 @@ def test_context_does_not_cross_recordings():
     assert out.iloc[1]["bpctx_bp_delta_+1"] == 3.0
 
 
+def test_cache_key_tracks_label_and_feature_code(tmp_path, monkeypatch):
+    """Editing labels.py or the feature code must invalidate cached features (line endings ignored)."""
+    cfg = load_config(CI_CONFIG)
+    names = {p.name for p in features.FEATURE_SOURCES}
+    assert {"labels.py", "features.py", "yasa_model.py"} <= names
+    src = tmp_path / "labels.py"
+    src.write_bytes(b"x = 1\n")
+    monkeypatch.setattr(features, "FEATURE_SOURCES", (src,))
+    before = cache_key(REC, "abc", features.feature_params(cfg))
+    src.write_bytes(b"x = 1\r\n")  # a CRLF checkout of the same code: same key
+    assert cache_key(REC, "abc", features.feature_params(cfg)) == before
+    src.write_bytes(b"x = 2\n")
+    assert cache_key(REC, "abc", features.feature_params(cfg)) != before
+
+
 def test_context_uses_epoch_no_order_not_row_order():
     df = pd.DataFrame({"recording": ["A"] * 3, "epoch_no": [2, 0, 1], "bp_delta": [3.0, 1.0, 2.0]})
     out = context_features(df, ["bp_delta"], width=1)

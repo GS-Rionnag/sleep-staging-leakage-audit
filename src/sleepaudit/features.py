@@ -29,6 +29,11 @@ BANDS = {
     "sigma": (11.5, 15.5),
     "beta": (15.5, 30.0),
 }
+_PKG = Path(__file__).resolve().parent
+# Modules whose code decides which epochs are kept and what their features are.
+FEATURE_SOURCES = tuple(
+    _PKG / n for n in ("labels.py", "download.py", "features.py", "yasa_model.py")
+)
 
 
 def band_power(epochs: np.ndarray, sfreq: float = SFREQ) -> np.ndarray:
@@ -87,8 +92,16 @@ def _extractor_versions(cfg: Config) -> list[str]:
     return [f"yasa=={yasa_version()}"]
 
 
+def code_hash(paths=None) -> str:
+    """SHA256 of the label and feature source files (line endings normalised)."""
+    h = hashlib.sha256()
+    for path in FEATURE_SOURCES if paths is None else paths:
+        h.update(Path(path).read_bytes().replace(b"\r\n", b"\n"))
+    return h.hexdigest()
+
+
 def feature_params(cfg: Config) -> dict:
-    """Every parameter that changes feature values; part of the cache key."""
+    """Every parameter that changes feature values, plus the code hash; part of the cache key."""
     return {
         "trim_epochs": cfg.trim_epochs,
         "bands": BANDS,
@@ -96,6 +109,7 @@ def feature_params(cfg: Config) -> dict:
         "sfreq": SFREQ,
         "context_width": CONTEXT_WIDTH,
         "extractors": _extractor_versions(cfg),
+        "code": code_hash(),
     }
 
 
