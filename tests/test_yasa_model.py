@@ -130,3 +130,19 @@ def test_feature_table_has_yasa_columns(tmp_path):
     root = data_dir() / "sleep-cassette"
     expect = pd.concat([recording_labels(r, root) for r in select_recordings([0])])
     assert table["epoch_no"].tolist() == expect["epoch_no"].tolist()
+
+
+@needs_psg
+def test_yasa_epochs_start_on_the_label_grid():
+    """YASA epoch i of the crop must be original-grid epoch lo + i: the per-epoch EEG std from YASA
+    matches our own signal epochs at lag 0 and clearly worse at lag +-1 (a crop off by one epoch)."""
+    from sleepaudit.features import load_signal_epochs
+
+    root = data_dir() / "sleep-cassette"
+    rec = next(r for r in select_recordings([0]) if r.stem == "SC4001E")
+    kept = recording_labels(rec, root)["epoch_no"].to_numpy()
+    ours = np.log(load_signal_epochs(rec, root, kept).std(axis=1))
+    theirs = np.log(yasa_features(rec, root, kept)["yasa_eeg_std"].to_numpy())
+    lag0 = np.corrcoef(ours, theirs)[0, 1]
+    lag1 = max(np.corrcoef(ours[1:], theirs[:-1])[0, 1], np.corrcoef(ours[:-1], theirs[1:])[0, 1])
+    assert lag0 > 0.99 and lag0 - lag1 > 0.05, (lag0, lag1)
