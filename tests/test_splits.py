@@ -110,6 +110,35 @@ def test_block_buffer(idx):
                 assert gap.min() > BUFFER, f"{r}: train row {gap.min()} epochs from a test row"
 
 
+def test_block_buffer_holds_in_kept_epoch_order_across_dropped_epochs():
+    """Context features take neighbours in kept-epoch order, skipping dropped (-1) epochs, so the
+    buffer must hold in that order too: a gap of dropped epochs must not let a train row's
+    +-2 context window reach a test epoch. Real SC data has interior gaps of up to 98 epochs."""
+    rows = []
+    for s in range(4):
+        rec = f"SC4{s:02d}1E"
+        # 300-epoch grid with epochs 100..119 dropped (20-epoch gap, e.g. a "Sleep stage ?" run)
+        for e in [e for e in range(300) if not 100 <= e < 120]:
+            rows.append((rec, s, 1, e))
+    idx = pd.DataFrame(rows, columns=["recording", "subject", "night", "epoch_no"])
+    rank = idx.groupby("recording")["epoch_no"].rank(method="first").astype(int).to_numpy()
+    rec = idx["recording"].to_numpy()
+    checked = 0
+    for seed in range(10):
+        for f in make_folds(idx, "block", 5, seed, block_epochs=60, buffer_epochs=BUFFER):
+            for r in np.unique(rec[f.test]):
+                test_r = rank[f.test][rec[f.test] == r]
+                train_r = rank[f.train][rec[f.train] == r]
+                if not len(train_r):
+                    continue
+                gap = np.abs(train_r[:, None] - test_r[None, :]).min(axis=1)
+                assert gap.min() > BUFFER, (
+                    f"{r} seed {seed}: train row {gap.min()} kept epochs away"
+                )
+                checked += 1
+    assert checked
+
+
 def test_block_arm_tests_whole_blocks_and_drops_only_neighbours(idx):
     rec = idx["recording"].to_numpy()
     epoch = idx["epoch_no"].to_numpy()

@@ -26,9 +26,14 @@ def _group_ids(index: pd.DataFrame, arm: str, block_epochs: int) -> np.ndarray:
 
 
 def _drop_buffer(index: pd.DataFrame, folds: list[Fold], buffer_epochs: int) -> list[Fold]:
-    """Remove from each train set the rows of a test recording within ``buffer_epochs`` of a test row."""
+    """Remove from each train set the rows of a test recording within ``buffer_epochs`` of a test row.
+
+    Distance is counted in kept-epoch order within the recording (the order context features use,
+    which skips dropped epochs). It is never larger than the ``epoch_no`` distance, so the buffer
+    also holds on the 30-s grid that YASA's smoothing uses.
+    """
     recording = index["recording"].to_numpy()
-    epoch = index["epoch_no"].to_numpy()
+    epoch = index.groupby("recording", sort=False)["epoch_no"].rank(method="first").to_numpy()
     out = []
     for fold in folds:
         keep = np.ones(len(fold.train), dtype=bool)
@@ -60,7 +65,8 @@ def make_folds(
 
     ``epoch``: shuffled rows (neighbouring epochs and subjects leak).
     ``block``: contiguous ``block_epochs`` blocks per recording as groups, then train rows within
-        ``buffer_epochs`` of a test row of the same recording are dropped (distance <= buffer).
+        ``buffer_epochs`` of a test row of the same recording are dropped (distance <= buffer,
+        counted in kept-epoch order).
     ``night``: whole recordings held out (the subject's other night may be in train).
     ``subject`` / ``subject_prefit``: whole subjects held out (identical folds).
     """
