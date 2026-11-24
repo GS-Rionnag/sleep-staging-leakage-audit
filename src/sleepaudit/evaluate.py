@@ -143,6 +143,13 @@ def run_evaluation(cfg, table: pd.DataFrame | None = None, allow_without_prereg:
     """
     from datetime import UTC, datetime
 
+    from sleepaudit.checks import (
+        HONEST_ARMS,
+        PipelineFailure,
+        check_epoch_counts,
+        check_honest_folds,
+        check_split_invariant,
+    )
     from sleepaudit.fragmentation import with_transition_distance
     from sleepaudit.models import MODELS
     from sleepaudit.runmeta import check_prereg, write_meta
@@ -155,7 +162,11 @@ def run_evaluation(cfg, table: pd.DataFrame | None = None, allow_without_prereg:
 
         table = build_feature_table(cfg)
     table = with_transition_distance(table.reset_index(drop=True))
+    counts_ok = check_epoch_counts(table, cfg.subset)
+    if counts_ok is False:
+        raise PipelineFailure(f"{cfg.subset}: kept-epoch counts differ from the published totals")
     cfg.results_dir.mkdir(parents=True, exist_ok=True)
+    honest_checked = False
 
     fold_cache: dict[tuple[str, int], list[Fold]] = {}
     per_subject, pooled, oofs = [], [], []
@@ -171,6 +182,9 @@ def run_evaluation(cfg, table: pd.DataFrame | None = None, allow_without_prereg:
                     fold_cache[key] = make_folds(
                         table, arm, cfg.k, seed, cfg.block_epochs, cfg.buffer_epochs
                     )
+                    if arm in HONEST_ARMS:
+                        check_honest_folds(table, fold_cache[key])  # raises before training
+                        honest_checked = True
                 oof = run_oof(
                     spec, table, fold_cache[key], seed, prefit_scaler=arm == "subject_prefit"
                 )
@@ -202,6 +216,12 @@ def run_evaluation(cfg, table: pd.DataFrame | None = None, allow_without_prereg:
     )
     strata.to_csv(out / "strata.csv", index=False)
     _night_table(table, oof_all).to_csv(out / "nights.csv", index=False)
+    checks = {
+        "honest_folds_subject_disjoint": True if honest_checked else None,
+        "yasa_pretrained_split_invariant": check_split_invariant(ps),
+        "epoch_counts_match_published": counts_ok,
+    }
+    print(f"pipeline checks: {checks}")
     compact = oof_all.astype(
         {
             **{c: "float32" for c in PROBA_COLS + ["trans_dist"]},
@@ -215,5 +235,7 @@ def run_evaluation(cfg, table: pd.DataFrame | None = None, allow_without_prereg:
         out / "meta.json",
         started=started,
         finished=datetime.now(UTC),
-        extra={"allow_without_prereg": allow_without_prereg},
+        extra={"allow_without_prereg": allow_without_prereg, "pipeline_checks": checks},
     )
+    if checks["yasa_pretrained_split_invariant"] is False:
+        raise PipelineFailure("yasa_pretrained per-subject kappa differs between arms or seeds")
