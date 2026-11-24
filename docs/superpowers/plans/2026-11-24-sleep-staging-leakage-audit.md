@@ -366,15 +366,16 @@ Config values: `ci.yaml` → `subset: [0, 1, 2, 3]`, `k: 2`, `seeds: [0]`, `n_bo
   - `all` = `fetch-labels → fetch-psg → features → evaluate → report`; skips `subject_prefit` for models without a scaler and logs that it did.
   - `evaluate` refuses to run a config whose subset is `sc20` or `sc78` unless the git tag `prereg-v1` exists in the current history (escape hatch: `--allow-without-prereg`, recorded in `meta.json`).
 
-- [ ] **Step 1: Write failing tests:**
+- [x] **Step 1: Write failing tests:**
   - `test_summary_columns` (`test_report.py`): `render_report` on a synthetic `per_subject.csv` writes `summary.csv` with the columns above and both figure files.
   - `test_meta_fields`: `write_meta` output contains every key listed, and `dirty` is a bool.
   - `test_prereg_gate`: `evaluate` with an `sc78` config in a repo without the tag exits non-zero with a message naming `prereg-v1`.
   - `@needs_psg test_ci_smoke` (`test_cli_smoke.py`): `python -m sleepaudit all --config configs/ci.yaml` exits 0 and `summary.csv` has a row for each of the five models.
-- [ ] **Step 2:** Run `uv run pytest tests/test_report.py tests/test_cli_smoke.py -v`. Expected: FAIL.
-- [ ] **Step 3:** Implement.
-- [ ] **Step 4:** Run the full suite with `SLEEPAUDIT_REQUIRE_DATA=1`. Expected: PASS; the smoke run completes in under 30 minutes on the laptop.
-- [ ] **Step 5:** Commit: `feat: orchestration, results tables, figures and run metadata`.
+- [x] **Step 2:** Run `uv run pytest tests/test_report.py tests/test_cli_smoke.py -v`. Expected: FAIL.
+- [x] **Step 3:** Implement.
+- [x] **Step 4:** Run the full suite with `SLEEPAUDIT_REQUIRE_DATA=1`. Expected: PASS; the smoke run completes in under 30 minutes on the laptop.
+  - *Note (executed 2026-11-24): `run_evaluation` lives in `evaluate.py`; `summary.csv` is written by `render_report` from `per_subject.csv` (columns `model, honest_arm, leaky_arm, metric` + BootResult fields). The prereg gate also runs at the start of `all` so nothing is downloaded first. `meta.json` `dirty` ignores untracked files and adds `allow_without_prereg`. `.gitignore` gained `results/*/*.parquet` and `results/ci/`. Fixture `all` took 18 s with a warm feature cache.*
+- [x] **Step 5:** Commit: `feat: orchestration, results tables, figures and run metadata`.
 
 ---
 

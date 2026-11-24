@@ -71,7 +71,9 @@ def test_leading_trailing_wake_not_awakening():
 
 
 def test_transition_and_n1_share():
-    s = night_summary(_night([2, 2, 1, 1]))  # transitions at index 2 only (index 0 has no predecessor)
+    s = night_summary(
+        _night([2, 2, 1, 1])
+    )  # transitions at index 2 only (index 0 has no predecessor)
     assert s.loc[0, "n1_share"] == 0.5
     assert s.loc[0, "transition_share"] == 0.25
 

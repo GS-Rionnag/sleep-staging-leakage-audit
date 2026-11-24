@@ -111,3 +111,109 @@ def pooled_metrics(oof: pd.DataFrame) -> dict[str, float]:
     }
     out.update({f"f1_{n}": float(v) for n, v in zip(STAGE_NAMES, per_class, strict=True)})
     return out
+
+
+def _terciles(values: pd.Series) -> pd.Series:
+    """low / mid / high thirds by rank (ties broken by order), robust to fewer than 3 values."""
+    n = len(values)
+    third = np.ceil(values.rank(method="first").to_numpy() * 3 / n).astype(int) - 1
+    return pd.Series(np.array(["low", "mid", "high"])[np.clip(third, 0, 2)], index=values.index)
+
+
+def _night_table(table: pd.DataFrame, oof: pd.DataFrame) -> pd.DataFrame:
+    """Per-recording kappa per model and arm (seeds pooled) joined with night-level summaries."""
+    from sleepaudit.fragmentation import night_summary
+
+    rows = [
+        {"model": m, "arm": a, "recording": r, "kappa": _kappa(g["y_true"].to_numpy(), g["y_pred"].to_numpy())}
+        for (m, a, r), g in oof.groupby(["model", "arm", "recording"], observed=True)
+    ]  # fmt: skip
+    nights = night_summary(table)
+    for col in ("transition_share", "n1_share"):
+        nights[f"tercile_{col}"] = _terciles(nights[col])
+    return pd.DataFrame(rows).merge(nights, on="recording", how="left")
+
+
+def run_evaluation(cfg, table: pd.DataFrame | None = None, allow_without_prereg: bool = False):
+    """Out-of-fold predictions for every model x arm x seed, then the results tables.
+
+    Writes ``per_subject.csv``, ``oof.parquet``, ``pooled.csv``, ``strata.csv``, ``nights.csv`` and
+    ``meta.json`` under ``cfg.results_dir``. ``subject_prefit`` is skipped (and logged) for models
+    without a scaler. ``table`` may be passed in (tests); otherwise it is built from the cache.
+    """
+    from datetime import UTC, datetime
+
+    from sleepaudit.fragmentation import with_transition_distance
+    from sleepaudit.models import MODELS
+    from sleepaudit.runmeta import check_prereg, write_meta
+    from sleepaudit.splits import make_folds
+
+    check_prereg(cfg, allow_without_prereg)
+    started = datetime.now(UTC)
+    if table is None:
+        from sleepaudit.features import build_feature_table
+
+        table = build_feature_table(cfg)
+    table = with_transition_distance(table.reset_index(drop=True))
+    cfg.results_dir.mkdir(parents=True, exist_ok=True)
+
+    fold_cache: dict[tuple[str, int], list[Fold]] = {}
+    per_subject, pooled, oofs = [], [], []
+    for model in cfg.models:
+        spec = MODELS[model]
+        for arm in cfg.arms:
+            if arm == "subject_prefit" and not spec.has_scaler:
+                print(f"skip {model} x subject_prefit: no scaler step, identical to subject")
+                continue
+            for seed in cfg.seeds:
+                key = (arm, seed)
+                if key not in fold_cache:
+                    fold_cache[key] = make_folds(
+                        table, arm, cfg.k, seed, cfg.block_epochs, cfg.buffer_epochs
+                    )
+                oof = run_oof(
+                    spec, table, fold_cache[key], seed, prefit_scaler=arm == "subject_prefit"
+                )
+                rows = oof["row"].to_numpy()
+                full = oof.drop(columns="row").copy()
+                full.insert(0, "y_true", table["label"].to_numpy()[rows])
+                for col in ("trans_dist", "stratum", "epoch_no", "subject", "recording"):
+                    full.insert(0, col, table[col].to_numpy()[rows])
+                tag = {"model": model, "arm": arm, "seed": seed}
+                m = per_subject_metrics(full)
+                per_subject.append(m.assign(dataset=cfg.name, **tag))
+                pooled.append({**tag, **pooled_metrics(full)})
+                oofs.append(full.assign(**tag))
+                print(f"{model} {arm} seed {seed}: mean per-subject kappa {m['kappa'].mean():.3f}")
+
+    out = cfg.results_dir
+    ps = pd.concat(per_subject, ignore_index=True)
+    ps = ps[
+        ["dataset", "model", "arm", "seed", "subject", "kappa", "accuracy", "macro_f1", "ece", "n_epochs"]
+    ]  # fmt: skip
+    ps.to_csv(out / "per_subject.csv", index=False)
+    pd.DataFrame(pooled).to_csv(out / "pooled.csv", index=False)
+    oof_all = pd.concat(oofs, ignore_index=True)
+    strata = (
+        oof_all.assign(correct=oof_all["y_true"] == oof_all["y_pred"])
+        .groupby(["model", "arm", "stratum"])["correct"]
+        .agg(accuracy="mean", n_epochs="size")
+        .reset_index()
+    )
+    strata.to_csv(out / "strata.csv", index=False)
+    _night_table(table, oof_all).to_csv(out / "nights.csv", index=False)
+    compact = oof_all.astype(
+        {
+            **{c: "float32" for c in PROBA_COLS + ["trans_dist"]},
+            **{c: "category" for c in ("model", "arm", "stratum", "recording")},
+            **{c: "int8" for c in ("y_true", "y_pred", "seed")},
+        }
+    )
+    compact.to_parquet(out / "oof.parquet", index=False)
+    write_meta(
+        cfg,
+        out / "meta.json",
+        started=started,
+        finished=datetime.now(UTC),
+        extra={"allow_without_prereg": allow_without_prereg},
+    )
