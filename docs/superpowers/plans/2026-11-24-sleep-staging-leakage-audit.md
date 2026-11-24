@@ -418,9 +418,11 @@ Content pinned by the spec (section "Subjects are the unit of evidence"):
 - **REFORMS:** one row per item (32), each "addressed in <file/section>" or "N/A because …".
 - **Data card:** source, licence (ODC-By 1.0, cite Kemp et al. 2000 and PhysioNet), SC-only, label conversions, age structure (IDs 0–19 aged 25–34, ≥20 aged 50–101).
 
-- [ ] **Step 1:** Write the four documents and the README changes.
-- [ ] **Step 2:** Self-check: every hypothesis names an arm and model that exist in `ARMS`/`MODELS`; every failure criterion maps to an existing test.
-- [ ] **Step 3:** Commit: `docs: pre-registration, model info sheet, REFORMS and data card`.
+- [x] **Step 1:** Write the four documents and the README changes.
+  - *Note (executed 2026-11-24): before writing, a whole-codebase review led to five commits (block buffer in kept-epoch order, code hash in the feature cache key, YASA crop alignment test, run-time pipeline checks in `meta.json`, `contrasts.csv` for H2–H4 and `confusion.csv`). H1 is "interval entirely below 0", not just "excludes 0". H2–H4 decision rules are in prereg A9. The README's stale Data/Models/Background lines were corrected along with "Open questions".*
+- [x] **Step 2:** Self-check: every hypothesis names an arm and model that exist in `ARMS`/`MODELS`; every failure criterion maps to an existing test.
+  - *Note (executed 2026-11-24): checked by script; every cited `test_*` function exists, and each failure criterion also has a run-time check (`meta.json` → `pipeline_checks`).*
+- [x] **Step 3:** Commit: `docs: pre-registration, model info sheet, REFORMS and data card`.
 - [ ] **Step 4:** `git tag -a prereg-v1 -m "Pre-registration frozen before any full-data run"`. Push the tag only with the user's go-ahead.
 
 ---
