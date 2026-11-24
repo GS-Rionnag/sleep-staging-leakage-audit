@@ -397,7 +397,8 @@ Jobs:
 - [x] **Step 2:** Validate locally with `uvx actionlint` (or `uvx check-jsonschema --builtin-schema vendor.github-workflows .github/workflows/ci.yml`). Expected: no errors.
   - *Note (executed 2026-11-24): `uvx actionlint` does not exist on PyPI; validated with `uvx check-jsonschema --builtin-schema vendor.github-workflows` (ok). All actions are pinned to commit SHAs; the `unit`/`labels`/`smoke` jobs use `contents: read` only. The artifact upload globs are CSV, JSON and PNG only.*
 - [x] **Step 3:** Commit: `ci: unit, label-count and fixture smoke jobs`.
-- [ ] **Step 4:** Ask the user before creating the GitHub repository and pushing (outward-facing). After the push, confirm all three jobs pass; the first `smoke` run downloads ~400 MB.
+- [x] **Step 4:** Ask the user before creating the GitHub repository and pushing (outward-facing). After the push, confirm all three jobs pass; the first `smoke` run downloads ~400 MB.
+  - *Note (executed 2026-11-24): public repo GS-Rionnag/sleep-staging-leakage-audit; run 45455354250 passed unit (ubuntu, windows), labels and smoke (3 min 33 s).*
 
 ---
 
