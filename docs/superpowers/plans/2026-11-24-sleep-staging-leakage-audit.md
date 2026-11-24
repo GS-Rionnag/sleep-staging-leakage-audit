@@ -424,7 +424,7 @@ Content pinned by the spec (section "Subjects are the unit of evidence"):
   - *Note (executed 2026-11-24): checked by script; every cited `test_*` function exists, and each failure criterion also has a run-time check (`meta.json` → `pipeline_checks`).*
 - [x] **Step 3:** Commit: `docs: pre-registration, model info sheet, REFORMS and data card`.
 - [x] **Step 4:** `git tag -a prereg-v1 -m "Pre-registration frozen before any full-data run"`. Push the tag only with the user's go-ahead.
-  - *Note (executed 2026-11-24): tag on 9764041; pushed with `main` to the private `server` remote on the user's instruction (`git push server main --follow-tags`; the bare form pushed nothing because `main` has no upstream). Not pushed to GitHub.*
+  - *Note (executed 2026-11-24): tagged and pushed to the private server remote, then, on the user's go-ahead, history was scrubbed of personal details (author email, personal notes) and published to the public GitHub repo GS-Rionnag/sleep-staging-leakage-audit. The tag is on 37d51d5 there; code and tests are byte-identical to the pre-scrub tag 9764041.*
 
 ---
 
