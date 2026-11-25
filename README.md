@@ -67,7 +67,7 @@ The same models, features, seeds (0–4) and number of folds are used in every a
 
 ## Results
 
-Full runs on one machine (the GPU server), commit `30f4a5f`, descended from the tag `prereg-v1`. All three pipeline-failure checks in `meta.json` passed for both datasets (`honest_folds_subject_disjoint`, `yasa_pretrained_split_invariant`, `epoch_counts_match_published`), and `dirty` is `false`. They were read before any score. Raw outputs are in [`results/sc78/`](results/sc78) and [`results/sc20/`](results/sc20). No subject was dropped from any paired contrast (`n_dropped = 0`).
+Full runs on one machine (the GPU server), commit `30f4a5f`, descended from the tag `prereg-v1`. The figures were regenerated from the same `per_subject.csv` after a plotting fix (commit `b072949`, [deviations log](docs/preregistration.md)); every CSV is exactly as the server wrote it. All three pipeline-failure checks in `meta.json` passed for both datasets (`honest_folds_subject_disjoint`, `yasa_pretrained_split_invariant`, `epoch_counts_match_published`), and `dirty` is `false`. They were read before any score. Raw outputs are in [`results/sc78/`](results/sc78) and [`results/sc20/`](results/sc20). No subject was dropped from any paired contrast (`n_dropped = 0`).
 
 ### SC-78 (primary: 78 subjects, 153 nights, 10-fold)
 
@@ -117,11 +117,15 @@ Across the 5 seeds, the mean κ of any model and arm varies by at most 0.007 on 
 
 ![Paired differences in per-subject κ, SC-78](results/sc78/figures/forest.png)
 
-*Forest plot for SC-78: honest minus leaky per-subject κ with 95% subject-bootstrap intervals (`results/sc78/figures/forest.png`). The x-axis label is clipped by the figure code.*
+*Forest plot for SC-78: honest minus leaky per-subject κ with 95% subject-bootstrap intervals (`results/sc78/figures/forest.png`).*
+
+![yasa_lgbm per-subject κ, epoch vs subject, SC-78](results/sc78/figures/slopegraph_yasa_lgbm.png)
+
+*`yasa_lgbm` on SC-78: each grey line is one subject; the red line is the mean with a 95% interval. The other models' slopegraphs are in `results/sc78/figures/` and `results/sc20/figures/`.*
 
 ### Hypotheses, by the pre-registered rules
 
-The rules are in [A9 of the pre-registration](docs/preregistration.md). H1 is the single primary hypothesis. H2–H4 are secondary and carry no multiplicity correction. The post-freeze deviations log is empty: no code or protocol change was made after the tag.
+The rules are in [A9 of the pre-registration](docs/preregistration.md). H1 is the single primary hypothesis. H2–H4 are secondary and carry no multiplicity correction. The post-freeze deviations log has one entry, a plotting fix that changes no number.
 
 **H1: every trained model scores lower under `subject` than under `epoch`.** Rule: the interval of the mean paired κ difference lies entirely below 0.
 

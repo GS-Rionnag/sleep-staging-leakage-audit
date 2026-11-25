@@ -218,3 +218,4 @@ Every change after `prereg-v1` that affects the protocol, the code path of a ful
 
 | Date | Commit | What changed | Why | Effect on results |
 |---|---|---|---|---|
+| 24 Nov 2026 | `b072949` | `report.slopegraph`: arm columns are keyed by arm name; forest-plot x-label shortened | After the full runs, the slopegraph means were found to be pooled across the two arms (both arm Series were named `kappa`). Found by inspecting the figure; the fix is figures only. A regression test was added, which failed before the fix | None on any number. Every CSV and `meta.json` is unchanged (`report` was re-run from the server's `per_subject.csv`; CSV differences were line endings only). Only `slopegraph_*.png` and `forest.png` changed. No model was retrained and no pipeline-failure criterion was involved |
