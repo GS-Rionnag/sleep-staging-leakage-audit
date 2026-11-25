@@ -155,13 +155,19 @@ def _arm_scores(per_subject: pd.DataFrame, model: str, arm: str) -> pd.Series:
     return sel.groupby("subject")["kappa"].mean()
 
 
-def slopegraph(per_subject: pd.DataFrame, model: str, leaky_arm: str, path: Path) -> None:
-    """Per-subject kappa, leaky arm vs ``subject``: faint lines, bold mean +/- CI, majority line."""
-    pair = pd.concat(
+def _paired_scores(per_subject: pd.DataFrame, model: str, leaky_arm: str) -> pd.DataFrame:
+    """Per-subject kappa, one column per arm (leaky first), subjects present in both."""
+    return pd.concat(
         [_arm_scores(per_subject, model, leaky_arm), _arm_scores(per_subject, model, HONEST)],
         axis=1,
         join="inner",
+        keys=[leaky_arm, HONEST],
     ).dropna()
+
+
+def slopegraph(per_subject: pd.DataFrame, model: str, leaky_arm: str, path: Path) -> None:
+    """Per-subject kappa, leaky arm vs ``subject``: faint lines, bold mean +/- CI, majority line."""
+    pair = _paired_scores(per_subject, model, leaky_arm)
     fig, ax = plt.subplots(figsize=(4.5, 5))
     for a, b in pair.to_numpy():
         ax.plot([0, 1], [a, b], color="0.6", alpha=0.35, lw=0.8)
@@ -195,7 +201,7 @@ def forest(summary: pd.DataFrame, path: Path) -> None:
                 fmt="o", color="C0", capsize=3)  # fmt: skip
     ax.axvline(0, color="k", lw=0.8)
     ax.set_yticks(y, labels)
-    ax.set_xlabel("paired difference in per-subject kappa (honest - leaky), 95% interval")
+    ax.set_xlabel("honest - leaky, per-subject kappa (95% interval)")
     fig.tight_layout()
     fig.savefig(path, dpi=150)
     plt.close(fig)

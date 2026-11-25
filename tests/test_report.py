@@ -10,7 +10,7 @@ import pytest
 from sleepaudit.__main__ import main
 from sleepaudit.config import load_config
 from sleepaudit.evaluate import run_evaluation
-from sleepaudit.report import render_report
+from sleepaudit.report import _mean_ci, _paired_scores, render_report
 from sleepaudit.runmeta import check_prereg, write_meta
 from synthetic import synthetic_table
 
@@ -256,3 +256,14 @@ def test_confusion_rows_normalised():
     assert w["W"] == pytest.approx(0.75) and w["N2"] == pytest.approx(0.25)
     assert c[c["true"] == "N1"].set_index("pred")["share"]["W"] == pytest.approx(0.5)
     assert c[c["true"] == "N3"]["share"].isna().all()  # no true N3 epochs: undefined, not 0
+
+
+def test_slopegraph_pair_keeps_arms_apart():
+    """Regression: both arm Series were named "kappa", so pair[col] returned both columns
+    and each arm's plotted mean was the pooled mean of the two arms."""
+    pair = _paired_scores(_per_subject(), "bandpower_lr", "epoch")
+    assert list(pair.columns) == ["epoch", "subject"]
+    means = [_mean_ci(pair[c].to_numpy())[0] for c in pair.columns]
+    assert means[0] == pytest.approx(0.7, abs=0.03)
+    assert means[1] == pytest.approx(0.6, abs=0.03)
+    assert means[0] - means[1] > 0.05
